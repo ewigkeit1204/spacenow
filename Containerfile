@@ -17,5 +17,5 @@ WORKDIR /app
 COPY --from=builder_mvn /src/target/spacenow.jar .
 ENV TWITTER_CONSUMER_KEY ""
 ENV TWITTER_CONSUMER_SECRET ""
-CMD ["java", "-jar", "/app/spacenow.jar", "--spacenow.twitter.consumerKey=$TWITTER_CONSUMER_KEY", "--spacenow.twitter.consumerSecret=$TWITTER_CONSUMER_SECRET"]
+CMD ["sh", "-c", "java -jar /app/spacenow.jar --spacenow.twitter.consumerKey=$TWITTER_CONSUMER_KEY --spacenow.twitter.consumerSecret=$TWITTER_CONSUMER_SECRET"]
 
