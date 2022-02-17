@@ -1,0 +1,9 @@
+#spacenow:
+#  twitter:
+#    consumerKey:
+#    consumerSecret:
+spring:
+  data:
+    mongodb:
+      host: localhost
+      database: spacenow
