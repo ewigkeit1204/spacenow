@@ -15,7 +15,10 @@ RUN set -x \
 FROM docker.io/library/openjdk:17-jdk-slim
 WORKDIR /app
 COPY --from=builder_mvn /src/target/spacenow.jar .
-ENV TWITTER_CONSUMER_KEY ""
-ENV TWITTER_CONSUMER_SECRET ""
-CMD ["sh", "-c", "java -jar /app/spacenow.jar --spacenow.twitter.consumerKey=$TWITTER_CONSUMER_KEY --spacenow.twitter.consumerSecret=$TWITTER_CONSUMER_SECRET"]
+RUN set -x \
+ && apt-get update \
+ && apt-get install -y locales \
+ && localedef -i ja_JP -f UTF-8 -A /usr/share/locale/locale.alias ja_JP.UTF-8 \
+ && rm -rf /var/lib/apt/lists/*
+CMD [ "java", "-jar", "/app/spacenow.jar" ]
 

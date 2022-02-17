@@ -7,6 +7,3 @@ spring:
     mongodb:
       host: 127.0.0.1
       database: spacenow
-server:
-  error:
-    include-binding-errors: on-param
