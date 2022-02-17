@@ -75,6 +75,7 @@ public class SpacenowService {
                         SpaceInfo info = new SpaceInfo();
                         info.setSpaceId(space.getId());
                         info.setCreatorId(space.getCreatorId());
+                        spaceInfoRepository.save(info);
 
                         User2 creator = response.getUsersMap().get(space.getCreatorId());
                         discordService.fireWebhook(endpoint.getWebhookUrl(),
