@@ -28,7 +28,7 @@ export default {
   },
   methods: {
     async saveEndpoint() {
-      await fetch(import.meta.env.VITE_SPACENOW_API_BASE_URL + '/endpoint', {
+      await fetch(import.meta.env.VITE_SPACENOW_API_BASE_URL + '/endpoint?errors=true', {
         method: 'POST',
         mode: 'cors',
         headers: {
