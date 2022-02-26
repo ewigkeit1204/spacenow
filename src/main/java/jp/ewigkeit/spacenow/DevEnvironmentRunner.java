@@ -21,8 +21,8 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-import jp.ewigkeit.spacenow.repository.EndpointRepository;
 import jp.ewigkeit.spacenow.repository.SpaceInfoRepository;
+import jp.ewigkeit.spacenow.repository.SubscribeInfoRepository;
 
 /**
  * @author Keisuke.K <ewigkeit1204@gmail.com>
@@ -32,15 +32,15 @@ import jp.ewigkeit.spacenow.repository.SpaceInfoRepository;
 public class DevEnvironmentRunner implements ApplicationRunner {
 
     @Autowired
-    private EndpointRepository endpointRepository;
+    private SubscribeInfoRepository subscribeInfoRepository;
 
     @Autowired
     private SpaceInfoRepository spaceInfoRepository;
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        endpointRepository.deleteAll();
-        spaceInfoRepository.deleteAll();
+        subscribeInfoRepository.deleteAll().block();
+        spaceInfoRepository.deleteAll().block();
     }
 
 }

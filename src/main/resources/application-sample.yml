@@ -2,7 +2,16 @@
 #  twitter:
 #    consumerKey:
 #    consumerSecret:
+#  discord:
+#    token:
 spring:
+  main:
+    web-application-type: none
+  cache:
+    cache-names:
+      - usersFromId
+    caffeine:
+      spec: expireAfterWrite=1d
   data:
     mongodb:
       host: 127.0.0.1

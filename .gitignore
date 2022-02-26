@@ -33,6 +33,3 @@ build/
 .vscode/
 
 application.yml
-.env*
-node_modules/
-src/main/resources/static/

@@ -15,19 +15,19 @@
  */
 package jp.ewigkeit.spacenow.repository;
 
-import java.util.Optional;
-
-import org.springframework.data.repository.PagingAndSortingRepository;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 
 import jp.ewigkeit.spacenow.entity.SpaceInfo;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * @author Keisuke.K <ewigkeit1204@gmail.com>
  */
-public interface SpaceInfoRepository extends PagingAndSortingRepository<SpaceInfo, String> {
+public interface SpaceInfoRepository extends ReactiveCrudRepository<SpaceInfo, String> {
 
-    Iterable<SpaceInfo> findByCreatorId(long creatorId);
+    Flux<SpaceInfo> findByCreatorId(long creatorId);
 
-    Optional<SpaceInfo> findBySpaceId(String spaceId);
+    Mono<SpaceInfo> findBySpaceId(String spaceId);
 
 }

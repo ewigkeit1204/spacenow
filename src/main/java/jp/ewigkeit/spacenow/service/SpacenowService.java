@@ -15,25 +15,25 @@
  */
 package jp.ewigkeit.spacenow.service;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.StreamSupport;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import jp.ewigkeit.spacenow.entity.Endpoint;
+import discord4j.core.GatewayDiscordClient;
+import discord4j.core.object.entity.channel.MessageChannel;
+import discord4j.core.spec.MessageCreateSpec;
+import jp.ewigkeit.spacenow.SpacenowUtils;
 import jp.ewigkeit.spacenow.entity.SpaceInfo;
-import jp.ewigkeit.spacenow.repository.EndpointRepository;
+import jp.ewigkeit.spacenow.entity.SubscribeInfo;
 import jp.ewigkeit.spacenow.repository.SpaceInfoRepository;
+import jp.ewigkeit.spacenow.repository.SubscribeInfoRepository;
 import lombok.extern.slf4j.Slf4j;
 import twitter4j.Space;
+import twitter4j.Space.State;
 import twitter4j.SpacesResponse;
 import twitter4j.TwitterException;
 import twitter4j.User2;
@@ -49,62 +49,80 @@ public class SpacenowService {
     private MessageSource messageSource;
 
     @Autowired
-    private EndpointRepository endpointRepository;
+    private SubscribeInfoRepository subscribeInfoRepository;
 
     @Autowired
     private SpaceInfoRepository spaceInfoRepository;
 
     @Autowired
-    private TwitterService twitterService;
+    private GatewayDiscordClient gatewayDiscordClient;
 
     @Autowired
-    private DiscordService discordService;
+    private TwitterService twitterService;
 
     @Scheduled(fixedDelay = 60, timeUnit = TimeUnit.SECONDS)
-    public void doSomething() {
-        Set<SpaceInfo> wastedInfos = new HashSet<>();
+    public void monitorSpace() {
+        long[] ids = subscribeInfoRepository.findAll().map(SubscribeInfo::getUserId).collectList().block().stream()
+                .mapToLong(Long::longValue).toArray();
 
-        endpointRepository.findAll().forEach(endpoint -> {
-            getSpaces(endpoint).ifPresent(response -> response.getSpaces().forEach(space -> {
-                spaceInfoRepository.findBySpaceId(space.getId()).ifPresentOrElse(spaceInfo -> {
-                    if (space.getState() == Space.State.Ended) {
-                        spaceInfoRepository.delete(spaceInfo);
-                    }
-                }, () -> {
-                    if (space.getState() == Space.State.Live) {
-                        SpaceInfo info = new SpaceInfo();
-                        info.setSpaceId(space.getId());
-                        info.setCreatorId(space.getCreatorId());
-                        spaceInfoRepository.save(info);
+        if (ids.length == 0) {
+            return;
+        }
 
-                        User2 creator = response.getUsersMap().get(space.getCreatorId());
-                        discordService.fireWebhook(endpoint.getWebhookUrl(),
-                                messageSource.getMessage("spacenow.startSpace",
-                                        new String[] { creator.getName(), creator.getUsername() },
-                                        Locale.getDefault()));
+        SpacesResponse response;
 
-                        StreamSupport
-                                .stream(spaceInfoRepository.findByCreatorId(space.getCreatorId()).spliterator(), false)
-                                .filter(i -> !space.getId().equals(i.getSpaceId())).forEach(wastedInfos::add);
-                    }
-                });
-            }));
+        try {
+            response = twitterService.lookupSpacesByCreatorIds(ids);
+        } catch (TwitterException e) {
+            log.error(e.getMessage(), e);
+            return;
+        }
+
+        response.getSpaces().stream().filter(space -> space.getState() == Space.State.Live).forEach(space -> {
+            if (spaceInfoRepository.findBySpaceId(space.getId()).block() != null) {
+                return;
+            }
+
+            spaceInfoRepository.save(new SpaceInfo(space.getId(), space.getCreatorId())).block();
+
+            User2 creator = response.getUsersMap().get(space.getCreatorId());
+            String content = SpacenowUtils.getMessage(messageSource, "spacenow.message.spaceStarted", creator.getName(),
+                    creator.getUsername(), space.getId());
+
+            subscribeInfoRepository.findByUserId(space.getCreatorId()).map(SubscribeInfo::getChannelId)
+                    .flatMap(channelId -> gatewayDiscordClient.getChannelById(channelId).ofType(MessageChannel.class)
+                            .flatMap(channel -> channel
+                                    .createMessage(MessageCreateSpec.builder().content(content).build())))
+                    .doOnError(e -> log.error(e.getMessage(), e)).subscribe();
         });
-
-        spaceInfoRepository.deleteAll(wastedInfos);
     }
 
-    private Optional<SpacesResponse> getSpaces(Endpoint endpoint) {
-        try {
-            List<User2> userIds = twitterService.getUserIdFromUsernames(endpoint.getUsernames().toArray(new String[0]))
-                    .getUsers();
+    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.HOURS)
+    public void cleanupSpaceInfo() {
+        List<String> spaceIds = spaceInfoRepository.findAll().map(SpaceInfo::getSpaceId).collectList().block();
 
-            return Optional
-                    .of(twitterService.getSpacesByCreatorIds(userIds.stream().mapToLong(User2::getId).toArray()));
-        } catch (TwitterException e) {
-            log.error("error occurred", e);
-            return Optional.empty();
+        if (spaceIds.isEmpty()) {
+            return;
         }
+
+        SpacesResponse response;
+
+        try {
+            response = twitterService.lookupSpaces(spaceIds.toArray(String[]::new));
+        } catch (TwitterException e) {
+            log.error(e.getMessage(), e);
+            return;
+        }
+
+        spaceIds.stream().forEach(spaceId -> {
+            if (response.getSpaces().stream().filter(space -> space.getId().equals(spaceId))
+                    .filter(space -> space.getState() != State.Ended).findAny().isPresent()) {
+                // space is going, don't cleanup.
+                return;
+            }
+
+            spaceInfoRepository.deleteById(spaceId).block();
+        });
     }
 
 }

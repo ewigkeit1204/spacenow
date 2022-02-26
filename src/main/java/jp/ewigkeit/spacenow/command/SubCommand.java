@@ -13,29 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package jp.ewigkeit.spacenow.service;
+package jp.ewigkeit.spacenow.command;
 
-import java.util.Map;
+import org.reactivestreams.Publisher;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
+import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
+import discord4j.core.object.entity.Guild;
+import discord4j.discordjson.json.ApplicationCommandOptionData;
 
 /**
  * @author Keisuke.K <ewigkeit1204@gmail.com>
  */
-@Service
-public class DiscordService {
+public interface SubCommand {
 
-    @Autowired
-    private WebClient webClient;
+    String getName();
 
-    public void fireWebhook(String endpoint, String content) {
-        Map<String, String> payload = Map.of("content", content);
+    ApplicationCommandOptionData getCommandOptionData(Guild guild);
 
-        webClient.post().uri(endpoint).contentType(MediaType.APPLICATION_JSON).bodyValue(payload).retrieve()
-                .toBodilessEntity().block();
-    }
+    Publisher<Void> handle(ChatInputInteractionEvent event);
 
 }

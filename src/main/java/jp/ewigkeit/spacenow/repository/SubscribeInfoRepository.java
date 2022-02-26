@@ -13,23 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package jp.ewigkeit.spacenow;
+package jp.ewigkeit.spacenow.repository;
 
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
-import org.springframework.web.reactive.config.CorsRegistry;
-import org.springframework.web.reactive.config.WebFluxConfigurer;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
+
+import discord4j.common.util.Snowflake;
+import jp.ewigkeit.spacenow.entity.SubscribeInfo;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * @author Keisuke.K <ewigkeit1204@gmail.com>
  */
-@Configuration
-@Profile("dev")
-public class DevCorsConfiguration implements WebFluxConfigurer {
+public interface SubscribeInfoRepository extends ReactiveCrudRepository<SubscribeInfo, String> {
 
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**").allowedOrigins("http://localhost:3000").allowedMethods("GET", "POST", "DELETE");
-    }
+    Flux<SubscribeInfo> findByChannelId(Snowflake channelId);
+
+    Flux<SubscribeInfo> findByUserId(long userId);
+
+    Mono<SubscribeInfo> findByUserIdAndChannelId(long userId, Snowflake channelId);
 
 }

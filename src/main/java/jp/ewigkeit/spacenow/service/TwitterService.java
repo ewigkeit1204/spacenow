@@ -16,30 +16,57 @@
 package jp.ewigkeit.spacenow.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 import twitter4j.GetUsersByKt;
+import twitter4j.GetUsersKt;
 import twitter4j.SpacesLookupExKt;
 import twitter4j.SpacesResponse;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
-import twitter4j.UsersResponse;
+import twitter4j.User2;
 
 /**
  * @author Keisuke.K <ewigkeit1204@gmail.com>
  */
 @Service
+@Slf4j
 public class TwitterService {
 
     @Autowired
     private Twitter twitter;
 
-    public UsersResponse getUserIdFromUsernames(String... usernames) throws TwitterException {
-        return GetUsersByKt.getUsersBy(twitter, usernames, null, null, "pinned_tweet_id");
+    public Mono<User2> lookupUser(String username) {
+        try {
+            return Mono.justOrEmpty(
+                    GetUsersByKt.getUsersBy(twitter, new String[] { username }, null, null, "pinned_tweet_id")
+                            .getUsers().stream().findFirst());
+        } catch (TwitterException e) {
+            log.error(e.getMessage(), e);
+            return Mono.error(e);
+        }
     }
 
-    public SpacesResponse getSpacesByCreatorIds(long... creatorIds) throws TwitterException {
-        return SpacesLookupExKt.getSpacesByCreatorIds(twitter, creatorIds, "creator_id", null, "name");
+    @Cacheable("usersFromId")
+    public Mono<User2> lookupUser(long id) {
+        try {
+            return Mono.justOrEmpty(GetUsersKt.getUsers(twitter, new long[] { id }, null, null, "pinned_tweet_id")
+                    .getUsers().stream().findFirst());
+        } catch (TwitterException e) {
+            log.error(e.getMessage(), e);
+            return Mono.error(e);
+        }
+    }
+
+    public SpacesResponse lookupSpacesByCreatorIds(long... creatorIds) throws TwitterException {
+        return SpacesLookupExKt.getSpacesByCreatorIds(twitter, creatorIds, "creator_id", null, null);
+    }
+
+    public SpacesResponse lookupSpaces(String... spaceIds) throws TwitterException {
+        return SpacesLookupExKt.getSpaces(twitter, spaceIds, null, null, null);
     }
 
 }

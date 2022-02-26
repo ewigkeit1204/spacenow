@@ -16,20 +16,27 @@
 package jp.ewigkeit.spacenow.entity;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Data;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 
 /**
  * @author Keisuke.K <ewigkeit1204@gmail.com>
  */
+@Document
 @Data
+@RequiredArgsConstructor
 public class SpaceInfo {
 
     @Id
     private String id;
 
+    @NonNull
     private String spaceId;
 
+    @NonNull
     private long creatorId;
 
 }

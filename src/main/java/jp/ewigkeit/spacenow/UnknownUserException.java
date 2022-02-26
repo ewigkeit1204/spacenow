@@ -13,25 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package jp.ewigkeit.spacenow.entity;
+package jp.ewigkeit.spacenow;
 
-import java.util.List;
-
-import org.springframework.data.annotation.Id;
-
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 /**
  * @author Keisuke.K <ewigkeit1204@gmail.com>
  */
-@Data
-public class Endpoint {
+@SuppressWarnings("serial")
+@AllArgsConstructor
+public class UnknownUserException extends RuntimeException {
 
-    @Id
-    private String id;
-
-    private String webhookUrl;
-
-    private List<String> usernames;
+    @Getter
+    private String username;
 
 }

@@ -18,11 +18,12 @@ package jp.ewigkeit.spacenow;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
+import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.web.reactive.function.client.WebClient;
 
+import discord4j.core.DiscordClientBuilder;
+import discord4j.core.GatewayDiscordClient;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
@@ -33,14 +34,14 @@ import twitter4j.conf.ConfigurationBuilder;
  * @author Keisuke.K <ewigkeit1204@gmail.com>
  */
 @Configuration
-@EnableMongoRepositories
+@EnableReactiveMongoRepositories
 @EnableAsync
 @EnableScheduling
 public class SpacenowConfiguration {
 
     @Bean
-    public WebClient webClient() {
-        return WebClient.builder().build();
+    public GatewayDiscordClient gatewayDiscordClient(@Value("${spacenow.discord.token}") String discordToken) {
+        return DiscordClientBuilder.create(discordToken).build().gateway().login().block();
     }
 
     @Bean
