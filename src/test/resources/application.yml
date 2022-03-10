@@ -1,0 +1,3 @@
+logging:
+  level:
+    '[jp.ewigkeit.spacenow]': debug

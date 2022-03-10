@@ -1,0 +1,28 @@
+spacenow:
+  twitter:
+    consumerKey: # write consumer key
+    consumerSecret: # write consumer secret
+  discord:
+    token: # write discord token
+spring:
+  main:
+    web-application-type: none
+  cache:
+    cache-names:
+      - usersFromId
+    caffeine:
+      spec: expireAfterWrite=1d
+  data:
+    mongodb:
+      database: spacenow
+  security:
+    oauth2:
+      client:
+        registration:
+          twitter:
+            client-id: # write consumer key
+            client-secret: # write consumer secret
+            authorization-grant-type: client_credentials
+        provider:
+          twitter:
+            token-uri: https://api.twitter.com/oauth2/token
