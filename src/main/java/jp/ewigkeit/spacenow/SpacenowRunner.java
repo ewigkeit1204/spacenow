@@ -17,7 +17,6 @@ package jp.ewigkeit.spacenow;
 
 import java.util.List;
 
-import javax.annotation.PreDestroy;
 import javax.validation.ValidationException;
 
 import org.reactivestreams.Publisher;
@@ -38,7 +37,6 @@ import jp.ewigkeit.spacenow.command.SubCommand;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import twitter4j.TwitterException;
 
 /**
  * @author Keisuke.K <ewigkeit1204@gmail.com>
@@ -58,7 +56,7 @@ public class SpacenowRunner extends ReactiveEventAdapter implements ApplicationR
 
     @Override
     public Publisher<?> onGuildCreate(GuildCreateEvent event) {
-        log.debug("joined to {}", event.getGuild().getName());
+        log.info("joined to {}", event.getGuild());
 
         long guildId = event.getGuild().getId().asLong();
         List<ApplicationCommandOptionData> commandOptionData = subCommands.stream()
@@ -75,9 +73,6 @@ public class SpacenowRunner extends ReactiveEventAdapter implements ApplicationR
     @Override
     public Publisher<Void> onChatInputInteraction(ChatInputInteractionEvent event) {
         return Flux.fromIterable(subCommands).flatMap(command -> command.handle(event))
-                .onErrorResume(TwitterException.class,
-                        e -> event.reply().withContent(
-                                SpacenowUtils.getMessage(event, messageSource, "spacenow.error.twitterException")))
                 .onErrorResume(ValidationException.class,
                         e -> event.reply()
                                 .withContent(SpacenowUtils.getMessage(event, messageSource,
@@ -89,13 +84,7 @@ public class SpacenowRunner extends ReactiveEventAdapter implements ApplicationR
 
     @Override
     public Publisher<?> onReady(ReadyEvent event) {
-        return Mono.just(event).map(ReadyEvent::getSelf).doOnNext(user -> log.debug("login as {}", user.getUsername()));
-    }
-
-    @PreDestroy
-    public void destroy() {
-        log.debug("logout from discord");
-        gatewayDiscordClient.logout().block();
+        return Mono.just(event).map(ReadyEvent::getSelf).doOnNext(user -> log.debug("login as {}", user));
     }
 
     @Override

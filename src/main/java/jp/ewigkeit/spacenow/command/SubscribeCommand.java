@@ -65,22 +65,27 @@ public class SubscribeCommand implements SubCommand {
 
     @Override
     public Publisher<Void> handle(ChatInputInteractionEvent event) {
-        return event.getOption(getName()).map(option -> Mono.justOrEmpty(option.getOption("user"))
-                .flatMap(subOption -> Mono.justOrEmpty(subOption.getValue()))
-                .flatMap(value -> SpacenowUtils.validateUsername(value.asString()))
-                .flatMap(username -> twitterService.lookupUser(username)
-                        .switchIfEmpty(Mono.error(new UnknownUserException(username))))
-                .zipWith(Mono.just(event.getInteraction().getChannelId()))
-                .flatMap(tuple -> subscribeInfoRepository.findByUserIdAndChannelId(tuple.getT1().getId(), tuple.getT2())
-                        .map(info -> SpacenowUtils.getMessage(event, messageSource,
-                                "spacenow.message.alreadySubscribed", tuple.getT1().getName(),
-                                tuple.getT1().getUsername()))
-                        .switchIfEmpty(Mono.just(new SubscribeInfo(tuple.getT1().getId(), tuple.getT2()))
-                                .flatMap(subscribeInfoRepository::save)
+        return event.getOption(getName())
+                .map(option -> Mono.justOrEmpty(option.getOption("user"))
+                        .flatMap(subOption -> Mono.justOrEmpty(subOption.getValue()))
+                        .flatMap(value -> SpacenowUtils.validateUsername(value.asString()))
+                        .flatMap(username -> twitterService.lookupUsersByUsernames(username)
+                                .filter(response -> !response.getUsers().isEmpty())
+                                .switchIfEmpty(Mono.error(new UnknownUserException(username))))
+                        .map(response -> response.getUsers().get(0))
+                        .zipWith(Mono.just(event.getInteraction().getChannelId()))
+                        .flatMap(tuple -> subscribeInfoRepository
+                                .findByUserIdAndChannelId(tuple.getT1().getId(), tuple.getT2())
                                 .map(info -> SpacenowUtils.getMessage(event, messageSource,
-                                        "spacenow.message.userSubscribed", tuple.getT1().getName(),
-                                        tuple.getT1().getUsername()))))
-                .flatMap(event.reply()::withContent)).orElse(Mono.empty());
+                                        "spacenow.message.alreadySubscribed", tuple.getT1().getName(),
+                                        tuple.getT1().getUsername()))
+                                .switchIfEmpty(Mono.just(new SubscribeInfo(tuple.getT1().getId(), tuple.getT2()))
+                                        .flatMap(subscribeInfoRepository::save)
+                                        .map(info -> SpacenowUtils.getMessage(event, messageSource,
+                                                "spacenow.message.userSubscribed", tuple.getT1().getName(),
+                                                tuple.getT1().getUsername()))))
+                        .flatMap(event.reply()::withContent))
+                .orElse(Mono.empty());
     }
 
 }

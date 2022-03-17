@@ -35,7 +35,6 @@ import lombok.extern.slf4j.Slf4j;
 import twitter4j.Space;
 import twitter4j.Space.State;
 import twitter4j.SpacesResponse;
-import twitter4j.TwitterException;
 import twitter4j.User2;
 
 /**
@@ -69,14 +68,7 @@ public class SpacenowService {
             return;
         }
 
-        SpacesResponse response;
-
-        try {
-            response = twitterService.lookupSpacesByCreatorIds(ids);
-        } catch (TwitterException e) {
-            log.error(e.getMessage(), e);
-            return;
-        }
+        SpacesResponse response = twitterService.lookupSpacesByCreatorIds(ids).block();
 
         response.getSpaces().stream().filter(space -> space.getState() == Space.State.Live).forEach(space -> {
             if (spaceInfoRepository.findBySpaceId(space.getId()).block() != null) {
@@ -105,14 +97,7 @@ public class SpacenowService {
             return;
         }
 
-        SpacesResponse response;
-
-        try {
-            response = twitterService.lookupSpaces(spaceIds.toArray(String[]::new));
-        } catch (TwitterException e) {
-            log.error(e.getMessage(), e);
-            return;
-        }
+        SpacesResponse response = twitterService.lookupSpaces(spaceIds.toArray(String[]::new)).block();
 
         spaceIds.stream().forEach(spaceId -> {
             if (response.getSpaces().stream().filter(space -> space.getId().equals(spaceId))

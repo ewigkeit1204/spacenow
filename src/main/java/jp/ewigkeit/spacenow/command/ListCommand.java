@@ -63,7 +63,7 @@ public class ListCommand implements SubCommand {
     public Publisher<Void> handle(ChatInputInteractionEvent event) {
         return event.getOption(getName()).map(option -> Mono.just(event.getInteraction().getChannelId())
                 .flatMapMany(subscribeInfoRepository::findByChannelId).map(SubscribeInfo::getUserId)
-                .flatMap(id -> twitterService.lookupUser(id))
+                .flatMap(id -> twitterService.lookupUsers(id)).map(response -> response.getUsers().get(0))
                 .map(user -> SpacenowUtils.getMessage(event, messageSource, "spacenow.message.listingFormat",
                         user.getName(), user.getUsername()))
                 .switchIfEmpty(

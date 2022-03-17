@@ -32,11 +32,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import discord4j.core.DiscordClientBuilder;
 import discord4j.core.GatewayDiscordClient;
-import twitter4j.Twitter;
-import twitter4j.TwitterException;
-import twitter4j.TwitterFactory;
-import twitter4j.auth.OAuth2Token;
-import twitter4j.conf.ConfigurationBuilder;
 
 /**
  * @author Keisuke.K <ewigkeit1204@gmail.com>
@@ -72,26 +67,6 @@ public class SpacenowConfiguration {
     @Bean
     public GatewayDiscordClient gatewayDiscordClient(@Value("${spacenow.discord.token}") String discordToken) {
         return DiscordClientBuilder.create(discordToken).build().gateway().login().block();
-    }
-
-    @Bean
-    public Twitter twitter(@Value("${spacenow.twitter.consumerKey}") String consumerKey,
-            @Value("${spacenow.twitter.consumerSecret}") String consumerSecret) throws TwitterException {
-        ConfigurationBuilder builder = new ConfigurationBuilder();
-        builder.setApplicationOnlyAuthEnabled(true);
-        builder.setOAuthConsumerKey(consumerKey);
-        builder.setOAuthConsumerSecret(consumerSecret);
-
-        OAuth2Token token = new TwitterFactory(builder.build()).getInstance().getOAuth2Token();
-
-        builder = new ConfigurationBuilder();
-        builder.setApplicationOnlyAuthEnabled(true);
-        builder.setOAuthConsumerKey(consumerKey);
-        builder.setOAuthConsumerSecret(consumerSecret);
-        builder.setOAuth2AccessToken(token.getAccessToken());
-        builder.setOAuth2TokenType(token.getTokenType());
-
-        return new TwitterFactory(builder.build()).getInstance();
     }
 
 }

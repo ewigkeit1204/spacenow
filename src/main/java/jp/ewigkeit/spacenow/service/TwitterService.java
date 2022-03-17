@@ -15,58 +15,61 @@
  */
 package jp.ewigkeit.spacenow.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.stereotype.Service;
+import java.net.URI;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriBuilder;
+
 import reactor.core.publisher.Mono;
-import twitter4j.GetUsersByKt;
-import twitter4j.GetUsersKt;
-import twitter4j.SpacesLookupExKt;
+import twitter4j.JSONObject;
 import twitter4j.SpacesResponse;
-import twitter4j.Twitter;
-import twitter4j.TwitterException;
-import twitter4j.User2;
+import twitter4j.UsersResponse;
 
 /**
  * @author Keisuke.K <ewigkeit1204@gmail.com>
  */
 @Service
-@Slf4j
 public class TwitterService {
 
     @Autowired
-    private Twitter twitter;
+    private WebClient webClient;
 
-    public Mono<User2> lookupUser(String username) {
-        try {
-            return Mono.justOrEmpty(
-                    GetUsersByKt.getUsersBy(twitter, new String[] { username }, null, null, "pinned_tweet_id")
-                            .getUsers().stream().findFirst());
-        } catch (TwitterException e) {
-            log.error(e.getMessage(), e);
-            return Mono.error(e);
-        }
+    public Mono<UsersResponse> lookupUsersByUsernames(String... usernames) {
+        return getUsersResponse(uriBuilder -> uriBuilder.path("/2/users/by")
+                .queryParam("usernames", String.join(",", usernames)).build());
     }
 
-    @Cacheable("usersFromId")
-    public Mono<User2> lookupUser(long id) {
-        try {
-            return Mono.justOrEmpty(GetUsersKt.getUsers(twitter, new long[] { id }, null, null, "pinned_tweet_id")
-                    .getUsers().stream().findFirst());
-        } catch (TwitterException e) {
-            log.error(e.getMessage(), e);
-            return Mono.error(e);
-        }
+    public Mono<UsersResponse> lookupUsers(long... ids) {
+        return getUsersResponse(uriBuilder -> uriBuilder.path("/2/users")
+                .queryParam("ids", LongStream.of(ids).mapToObj(String::valueOf).collect(Collectors.joining(",")))
+                .build());
     }
 
-    public SpacesResponse lookupSpacesByCreatorIds(long... creatorIds) throws TwitterException {
-        return SpacesLookupExKt.getSpacesByCreatorIds(twitter, creatorIds, "creator_id", null, null);
+    public Mono<SpacesResponse> lookupSpacesByCreatorIds(long... userIds) {
+        return getSpacesResponse(uriBuilder -> uriBuilder.path("/2/spaces/by/creator_ids")
+                .queryParam("user_ids",
+                        LongStream.of(userIds).mapToObj(String::valueOf).collect(Collectors.joining(",")))
+                .queryParam("expansions", "creator_id").build());
     }
 
-    public SpacesResponse lookupSpaces(String... spaceIds) throws TwitterException {
-        return SpacesLookupExKt.getSpaces(twitter, spaceIds, null, null, null);
+    public Mono<SpacesResponse> lookupSpaces(String... ids) {
+        return getSpacesResponse(
+                uriBuilder -> uriBuilder.path("/2/spaces").queryParam("ids", String.join(",", ids)).build());
+    }
+
+    Mono<UsersResponse> getUsersResponse(Function<UriBuilder, URI> uriFunction) {
+        return webClient.get().uri(uriFunction).retrieve().bodyToMono(String.class).map(JSONObject::new)
+                .map(json -> new UsersResponse(json, false));
+    }
+
+    Mono<SpacesResponse> getSpacesResponse(Function<UriBuilder, URI> uriFunction) {
+        return webClient.get().uri(uriFunction).retrieve().bodyToMono(String.class).map(JSONObject::new)
+                .map(json -> new SpacesResponse(json, false));
     }
 
 }
