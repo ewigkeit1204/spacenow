@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 
 import jp.ewigkeit.spacenow.repository.SpaceInfoRepository;
 import jp.ewigkeit.spacenow.repository.SubscribeInfoRepository;
+import reactor.core.publisher.Mono;
 
 /**
  * @author Keisuke.K <ewigkeit1204@gmail.com>
@@ -39,8 +40,7 @@ public class DevEnvironmentRunner implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        subscribeInfoRepository.deleteAll().block();
-        spaceInfoRepository.deleteAll().block();
+        Mono.zip(subscribeInfoRepository.deleteAll(), spaceInfoRepository.deleteAll()).block();
     }
 
 }
